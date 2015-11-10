@@ -1,4 +1,3 @@
-
 SUMMONER_ID = 'summoner_id'
 ASSISTS = 'assists'
 CHAMP_LEVEL = 'champLevel'
@@ -51,3 +50,4 @@ WARDS_PLACED = 'wardsPlaced'
 MATCH_ID = 'match_id'
 MATCH_ID_LIST = 'matches'
 MATCH_COUNT = 'match_num'
+FEATURES = 'features'

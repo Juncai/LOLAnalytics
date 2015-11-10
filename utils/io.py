@@ -1,3 +1,12 @@
+import pickle
+
+def load_pickle(path, type=None):
+    res = None
+    with open(path, 'rb') as f:
+        res = pickle.load(f)
+    if type is not None:
+        assert isinstance(res, type)
+    return res
 
 def load_features():
     feature_file_path = '../data/player_features_v1'
