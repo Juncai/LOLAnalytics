@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+# from pymongo import MongoClient
 import pickle
 import numpy as np
 
@@ -61,18 +61,29 @@ dict_path = 'data/match_dict'
 with open(dict_path, 'rb') as f:
     match_dict = pickle.load(f)
 
-gold_earned_diffs = []
-gold_spent_diffs = []
-# wins = []
+# gold_earned_diffs = []
+# gold_spent_diffs = []
+# # wins = []
+# wins_count = 0
+# for k in match_dict.keys():
+#     m = match_dict[k]
+#     wins_count += 1 if m[0] > m[1] else 0
+#     gold_earned_diffs.append(1 if m[0] > m[2] else 0)
+#     gold_spent_diffs.append(1 if m[1] > m[3] else 0)
+# n = len(gold_earned_diffs)
+# wins = np.ones((1, n)).tolist()[0]
+# print('gold_earned_win_cov: {}'.format(np.cov(gold_earned_diffs, wins)))
+# print('gold_earned_win_cov: {}'.format(np.cov(gold_spent_diffs, wins)))
+# tmp1 = np.dot(gold_earned_diffs, wins) / n
+# tmp2 = np.dot(gold_spent_diffs, wins) / n
+# print('gold_earned_acc: {}'.format(tmp1))
+# print('gold_spent_acc: {}'.format(tmp2))
+
+wins_count_earned = 0
+wins_count_spent = 0
 for k in match_dict.keys():
     m = match_dict[k]
-    gold_earned_diffs.append(1 if m[0] > m[2] else 0)
-    gold_spent_diffs.append(1 if m[1] > m[3] else 0)
-n = len(gold_earned_diffs)
-wins = np.ones((1, n)).tolist()[0]
-print('gold_earned_win_cov: {}'.format(np.cov(gold_earned_diffs, wins)))
-print('gold_earned_win_cov: {}'.format(np.cov(gold_spent_diffs, wins)))
-tmp1 = np.dot(gold_earned_diffs, wins) / n
-tmp2 = np.dot(gold_spent_diffs, wins) / n
-print('gold_earned_acc: {}'.format(tmp1))
-print('gold_spent_acc: {}'.format(tmp2))
+    wins_count_earned += 1 if m[0] > m[1] else 0
+    wins_count_spent += 1 if m[2] > m[3] else 0
+print('p(win | more gold earned): {}'.format(wins_count_earned / len(match_dict)))
+print('p(win | more gold spent): {}'.format(wins_count_spent / len(match_dict)))
