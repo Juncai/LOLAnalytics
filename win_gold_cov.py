@@ -85,5 +85,5 @@ for k in match_dict.keys():
     m = match_dict[k]
     wins_count_earned += 1 if m[0] > m[1] else 0
     wins_count_spent += 1 if m[2] > m[3] else 0
-print('p(win | more gold earned): {}'.format(wins_count_earned / len(match_dict)))
-print('p(win | more gold spent): {}'.format(wins_count_spent / len(match_dict)))
+print('p(win, more gold earned): {}'.format(wins_count_earned / len(match_dict)))
+print('p(win, more gold spent): {}'.format(wins_count_spent / len(match_dict)))
