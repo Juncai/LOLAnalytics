@@ -46,6 +46,7 @@ UNREAL_KILLS = 'unrealKills'
 VISION_WARDS_BOUGHT_IN_GAME = 'visionWardsBoughtInGame'
 WARDS_KILLED = 'wardsKilled'
 WARDS_PLACED = 'wardsPlaced'
+WINNER = 'winner'
 
 MATCH_ID = 'match_id'
 MATCH_ID_LIST = 'matches'

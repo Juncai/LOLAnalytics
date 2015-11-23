@@ -2,7 +2,9 @@ from pymongo import MongoClient
 import pickle
 import numpy as np
 import os.path as path
-
+import dao
+import Utils as util
+import Consts as c
 
 SUMMONER_ID = 'summoner_id'
 ASSISTS = 'assists'
@@ -58,6 +60,43 @@ MATCH_ID_LIST = 'matches'
 MATCH_COUNT = 'match_num'
 FEATURES = 'features'
 
+
+def retrieve_player_features():
+    # TODO load matches
+    mid_list_path = 'data/perfect_match_ids.pickle'
+
+    mid_list = util.load_pickle_file(mid_list_path)
+    match_col = dao.get_match_col()
+
+    matches_per_player = 300
+    player_dict_path = 'data/player_dict_2.pickle'
+    player_dict = {}
+    player_count = 0
+
+    print('Start retrieving...')
+    for mid in mid_list:
+        for m in match_col.find({c.MATCH_ID : mid}):
+            p_id = m[c.SUMMONER_ID]
+            if p_id not in player_dict:
+                p_match_count = 0
+                for mm in match_col.find({c.SUMMONER_ID : p_id}):
+                    if sanity_check(mm):
+                        if p_match_count == 0:
+                            init_player(player_dict, p_id, mm)
+                        else:
+                            update_player(player_dict, p_id, mm)
+                        p_match_count += 1
+                    if p_match_count == matches_per_player:
+                        player_count += 1
+                        print('Finished players {} with player id {}'.format(player_count, p_id))
+                        break
+
+    print('Writing dict to file...')
+    with open(player_dict_path, 'wb+') as f:
+        pickle.dump(player_dict, f)
+
+    print('Done!')
+    return
 
 def main():
     # TODO load matches
