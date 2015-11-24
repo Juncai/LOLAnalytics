@@ -9,7 +9,7 @@ import dao
 player_dict_path = 'data/player_dict.pickle'
 mid_path_test = 'data/perfect_match_ids_test.pickle'
 mid_path = 'data/perfect_match_ids.pickle'
-perfect_match_path = 'data/perfect_matches.pickle'
+
 perfect_match_path_test = 'data/perfect_matches_test.pickle'
 match_limit = 5000
 match_per_player = 300
@@ -98,17 +98,26 @@ def get_perfect_match_data(id_path, save_path):
         perfect_matches[mid] = [win_team, lose_team]
         init_team(win_team)
         init_team(lose_team)
+        print('Start working on match ID: {}'.format(mid))
         for m in match_col.find({c.MATCH_ID : mid}):
             if m[c.WINNER]:
-                win_team['players'].append(m[c.SUMMONER_ID])
-                win_team['goldEarned'] += m[c.GOLD_EARNED]
-                win_team['goldSpent'] += m[c.GOLD_SPENT]
+                win_team[c.TEAM_INFO_PLAYERS].append(m[c.SUMMONER_ID])
+                win_team[c.TEAM_INFO_GOLD_EARNED] += m[c.GOLD_EARNED]
+                win_team[c.TEAM_INFO_GOLD_SPENT] += m[c.GOLD_SPENT]
             else:
-                lose_team['players'].append(m[c.SUMMONER_ID])
-                lose_team['goldEarned'] += m[c.GOLD_EARNED]
-                lose_team['goldSpent'] += m[c.GOLD_SPENT]
+                lose_team[c.TEAM_INFO_PLAYERS].append(m[c.SUMMONER_ID])
+                lose_team[c.TEAM_INFO_GOLD_EARNED] += m[c.GOLD_EARNED]
+                lose_team[c.TEAM_INFO_GOLD_SPENT] += m[c.GOLD_SPENT]
     util.save(perfect_matches, save_path)
     print(perfect_matches[mid_list[0]])
+
+
+def load_player_data(perfect_match_path):
+    match_list = util.load_pickle_file(perfect_match_path)
+    for m in match_list:
+        for pid in m[0]['players']:
+            pass
+
 
 def init_team(t):
     t['players'] = []
@@ -117,6 +126,6 @@ def init_team(t):
 
 
 if __name__ == '__main__':
-    find_perfect_matches(mid_path)
+    # find_perfect_matches(mid_path)
     # get_perfect_match_data(mid_path_test, perfect_match_path_test)
-    # get_perfect_match_data(mid_path, perfect_match_path)
+    get_perfect_match_data(mid_path, perfect_match_path)

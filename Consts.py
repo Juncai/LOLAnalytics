@@ -52,3 +52,7 @@ MATCH_ID = 'match_id'
 MATCH_ID_LIST = 'matches'
 MATCH_COUNT = 'match_num'
 FEATURES = 'features'
+
+TEAM_INFO_PLAYERS = 'players'
+TEAM_INFO_GOLD_EARNED = 'goldEarned'
+TEAM_INFO_GOLD_SPENT = 'goldSpent'

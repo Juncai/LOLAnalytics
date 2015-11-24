@@ -69,7 +69,7 @@ def retrieve_player_features():
     match_col = dao.get_match_col()
 
     matches_per_player = 300
-    player_dict_path = 'data/player_dict_2.pickle'
+    player_dict_path = 'data/player_dict_3.pickle'
     player_dict = {}
     player_count = 0
 
@@ -87,8 +87,9 @@ def retrieve_player_features():
                             update_player(player_dict, p_id, mm)
                         p_match_count += 1
                     if p_match_count == matches_per_player:
+                        player_dict[p_id][FEATURES] = np.array(player_dict[p_id][FEATURES]) / matches_per_player
                         player_count += 1
-                        print('Finished players {} with player id {}'.format(player_count, p_id))
+                        print('Finished players {}, latest player id {}'.format(player_count, p_id))
                         break
 
     print('Writing dict to file...')
@@ -309,4 +310,5 @@ def update_player(p_dict, p_id, m):
     p_dict[p_id][FEATURES][46] += m[WARDS_PLACED]
 
 if __name__ == '__main__':
-    main()
+    retrieve_player_features()
+    # main()
