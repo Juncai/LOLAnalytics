@@ -8,6 +8,7 @@ import Utils as util
 import Preprocess
 from sklearn.linear_model import LogisticRegression
 import time
+from sklearn.preprocessing import normalize
 
 
 # player_dict_path = 'data/player_dict.pickle'
@@ -59,6 +60,11 @@ def main():
 
     features = np.array(features)
     label = np.array(label)
+
+    row_ranges = features.max(axis=1) - features.min(axis = 1)
+    row_means = features.mean(axis=1)
+    features = features / row_means[:, np.newaxis]
+    # features = normalize(features)
 
     # prepare training and testing set
     print('{} Start training...'.format(time.time() - st))
@@ -112,10 +118,13 @@ def k_means(center_num):
     y_pred = km.fit_predict(player_features)
 
     # calculate distance between all datapoint and center pairs
-    new_features = dist_to_center(player_features, km.cluster_centers_)
+    # new_features = dist_to_center(player_features, km.cluster_centers_)
+    new_features = np.dot(player_features, np.transpose(km.cluster_centers_))
+
     new_player_dict = {}
     for i in range(n):
-        new_player_dict[player_features_id[i][-1]] = new_features[i]
+        player_f = new_features[i]
+        new_player_dict[player_features_id[i][-1]] = player_f
 
     # print(km.cluster_centers_)
     # print(km.get_params())
@@ -148,7 +157,12 @@ def hierarchical():
     # plt.show()
 
 def dist_to_center(features, centers):
-    return distance.cdist(features, centers)
+    # res = distance.cdist(features, centers)
+    # res = distance.cdist(features, centers, 'minkowsk')
+    # res = distance.cdist(features, centers, 'correlation')
+    # res = distance.cdist(features, centers, 'chebyshev')
+    res = distance.cdist(features, centers, 'seuclidean')
+    return res
 
 
 if __name__ == '__main__':

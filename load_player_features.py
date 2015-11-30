@@ -7,6 +7,7 @@ import Utils as util
 import Consts as c
 
 SUMMONER_ID = 'summoner_id'
+CHAMPION_ID = 'championId'
 ASSISTS = 'assists'
 CHAMP_LEVEL = 'champLevel'
 COMBAT_PLAYER_SCORE = 'combatPlayerScore'
@@ -69,7 +70,7 @@ def retrieve_player_features():
     match_col = dao.get_match_col()
 
     matches_per_player = 300
-    player_dict_path = 'data/player_dict_3.pickle'
+    player_dict_path = 'data/player_dict_with_champ.pickle'
     player_dict = {}
     player_count = 0
 
@@ -78,16 +79,19 @@ def retrieve_player_features():
         for m in match_col.find({c.MATCH_ID : mid}):
             p_id = m[c.SUMMONER_ID]
             if p_id not in player_dict:
+                player_dict[p_id] = {}
                 p_match_count = 0
                 for mm in match_col.find({c.SUMMONER_ID : p_id}):
                     if sanity_check(mm):
-                        if p_match_count == 0:
+                        c_id = mm[CHAMPION_ID]
+                        if c_id not in player_dict[p_id].keys():
                             init_player(player_dict, p_id, mm)
                         else:
                             update_player(player_dict, p_id, mm)
                         p_match_count += 1
                     if p_match_count == matches_per_player:
-                        player_dict[p_id][FEATURES] = np.array(player_dict[p_id][FEATURES]) / matches_per_player
+                        for c_id in player_dict[p_id]:
+                            player_dict[p_id][c_id][FEATURES] = np.array(player_dict[p_id][c_id][FEATURES]) / player_dict[p_id][c_id][MATCH_COUNT]
                         player_count += 1
                         print('Finished players {}, latest player id {}'.format(player_count, p_id))
                         break
@@ -143,6 +147,7 @@ def main():
     return
 
 def sanity_check(m):
+    if CHAMPION_ID not in m.keys(): return False
     if ASSISTS not in m.keys(): return False
     if CHAMP_LEVEL not in m.keys(): return False
     if COMBAT_PLAYER_SCORE not in m.keys(): return False
@@ -200,56 +205,57 @@ def init_player(p_dict, p_id, m):
     :return:
     '''
     m_id = m[MATCH_ID]
-    p_dict[p_id] = {MATCH_ID_LIST : [m_id]}
-    p_dict[p_id][MATCH_COUNT] = 1
-    p_dict[p_id][FEATURES] = []
-    p_dict[p_id][FEATURES].append(m[ASSISTS])
-    p_dict[p_id][FEATURES].append(m[CHAMP_LEVEL])
-    p_dict[p_id][FEATURES].append(m[COMBAT_PLAYER_SCORE])
-    p_dict[p_id][FEATURES].append(m[DEATHS])
-    p_dict[p_id][FEATURES].append(m[DOUBLE_KILLS])
-    p_dict[p_id][FEATURES].append(m[FIRST_BLOOD_ASSIST])
-    p_dict[p_id][FEATURES].append(m[FIRST_BLOOD_KILL])
-    p_dict[p_id][FEATURES].append(m[FIRST_INHIBITOR_ASSIST])
-    p_dict[p_id][FEATURES].append(m[FIRST_INHIBITOR_KILL])
-    p_dict[p_id][FEATURES].append(m[FIRST_TOWER_ASSIST])
-    p_dict[p_id][FEATURES].append(m[FIRST_TOWER_KILL])
-    p_dict[p_id][FEATURES].append(m[GOLD_EARNED])
-    p_dict[p_id][FEATURES].append(m[GOLD_SPENT])
-    p_dict[p_id][FEATURES].append(m[INHIBITOR_KILLS])
-    p_dict[p_id][FEATURES].append(m[KILLING_SPREES])
-    p_dict[p_id][FEATURES].append(m[KILLS])
-    p_dict[p_id][FEATURES].append(m[LARGEST_CRITICAL_STRIKE])
-    p_dict[p_id][FEATURES].append(m[LARGEST_KILLING_SPREE])
-    p_dict[p_id][FEATURES].append(m[LARGEST_MULTI_KILL])
-    p_dict[p_id][FEATURES].append(m[MAGIC_DAMAGE_DEALT])
-    p_dict[p_id][FEATURES].append(m[MAGIC_DAMAGE_DEALT_TO_CHAMPIONS])
-    p_dict[p_id][FEATURES].append(m[MAGIC_DAMAGE_TAKEN])
-    p_dict[p_id][FEATURES].append(m[MINIONS_KILLED])
-    p_dict[p_id][FEATURES].append(m[NEUTRAL_MINIONS_KILLED])
-    p_dict[p_id][FEATURES].append(m[NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE])
-    p_dict[p_id][FEATURES].append(m[NEUTRAL_MINIONS_KILLED_TEAM_JUNGLE])
-    p_dict[p_id][FEATURES].append(m[PENTA_KILLS])
-    p_dict[p_id][FEATURES].append(m[PHYSICAL_DAMAGE_DEALT])
-    p_dict[p_id][FEATURES].append(m[PHYSICAL_DAMAGE_DEALT_TO_CHAMPIONS])
-    p_dict[p_id][FEATURES].append(m[PHYSICAL_DAMAGE_TAKEN])
-    p_dict[p_id][FEATURES].append(m[QUADRA_KILLS])
-    p_dict[p_id][FEATURES].append(m[SIGHT_WARDS_BOUGHT_IN_GAME])
-    p_dict[p_id][FEATURES].append(m[TOTAL_DAMAGE_DEALT])
-    p_dict[p_id][FEATURES].append(m[TOTAL_DAMAGE_DEALT_TO_CHAMPIONS])
-    p_dict[p_id][FEATURES].append(m[TOTAL_DAMAGE_TAKEN])
-    p_dict[p_id][FEATURES].append(m[TOTAL_HEAL])
-    p_dict[p_id][FEATURES].append(m[TOTAL_TIME_CROWD_CONTROL_DEALT])
-    p_dict[p_id][FEATURES].append(m[TOTAL_UNITS_HEALED])
-    p_dict[p_id][FEATURES].append(m[TOWER_KILLS])
-    p_dict[p_id][FEATURES].append(m[TRIPLE_KILLS])
-    p_dict[p_id][FEATURES].append(m[TRUE_DAMAGE_DEALT])
-    p_dict[p_id][FEATURES].append(m[TRUE_DAMAGE_DEALT_TO_CHAMPIONS])
-    p_dict[p_id][FEATURES].append(m[TRUE_DAMAGE_TAKEN])
-    p_dict[p_id][FEATURES].append(m[UNREAL_KILLS])
-    p_dict[p_id][FEATURES].append(m[VISION_WARDS_BOUGHT_IN_GAME])
-    p_dict[p_id][FEATURES].append(m[WARDS_KILLED])
-    p_dict[p_id][FEATURES].append(m[WARDS_PLACED])
+    c_id = m[CHAMPION_ID]
+    p_dict[p_id][c_id] = {MATCH_ID_LIST : [m_id]}
+    p_dict[p_id][c_id][MATCH_COUNT] = 1
+    p_dict[p_id][c_id][FEATURES] = []
+    p_dict[p_id][c_id][FEATURES].append(m[ASSISTS])
+    p_dict[p_id][c_id][FEATURES].append(m[CHAMP_LEVEL])
+    p_dict[p_id][c_id][FEATURES].append(m[COMBAT_PLAYER_SCORE])
+    p_dict[p_id][c_id][FEATURES].append(m[DEATHS])
+    p_dict[p_id][c_id][FEATURES].append(m[DOUBLE_KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[FIRST_BLOOD_ASSIST])
+    p_dict[p_id][c_id][FEATURES].append(m[FIRST_BLOOD_KILL])
+    p_dict[p_id][c_id][FEATURES].append(m[FIRST_INHIBITOR_ASSIST])
+    p_dict[p_id][c_id][FEATURES].append(m[FIRST_INHIBITOR_KILL])
+    p_dict[p_id][c_id][FEATURES].append(m[FIRST_TOWER_ASSIST])
+    p_dict[p_id][c_id][FEATURES].append(m[FIRST_TOWER_KILL])
+    p_dict[p_id][c_id][FEATURES].append(m[GOLD_EARNED])
+    p_dict[p_id][c_id][FEATURES].append(m[GOLD_SPENT])
+    p_dict[p_id][c_id][FEATURES].append(m[INHIBITOR_KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[KILLING_SPREES])
+    p_dict[p_id][c_id][FEATURES].append(m[KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[LARGEST_CRITICAL_STRIKE])
+    p_dict[p_id][c_id][FEATURES].append(m[LARGEST_KILLING_SPREE])
+    p_dict[p_id][c_id][FEATURES].append(m[LARGEST_MULTI_KILL])
+    p_dict[p_id][c_id][FEATURES].append(m[MAGIC_DAMAGE_DEALT])
+    p_dict[p_id][c_id][FEATURES].append(m[MAGIC_DAMAGE_DEALT_TO_CHAMPIONS])
+    p_dict[p_id][c_id][FEATURES].append(m[MAGIC_DAMAGE_TAKEN])
+    p_dict[p_id][c_id][FEATURES].append(m[MINIONS_KILLED])
+    p_dict[p_id][c_id][FEATURES].append(m[NEUTRAL_MINIONS_KILLED])
+    p_dict[p_id][c_id][FEATURES].append(m[NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE])
+    p_dict[p_id][c_id][FEATURES].append(m[NEUTRAL_MINIONS_KILLED_TEAM_JUNGLE])
+    p_dict[p_id][c_id][FEATURES].append(m[PENTA_KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[PHYSICAL_DAMAGE_DEALT])
+    p_dict[p_id][c_id][FEATURES].append(m[PHYSICAL_DAMAGE_DEALT_TO_CHAMPIONS])
+    p_dict[p_id][c_id][FEATURES].append(m[PHYSICAL_DAMAGE_TAKEN])
+    p_dict[p_id][c_id][FEATURES].append(m[QUADRA_KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[SIGHT_WARDS_BOUGHT_IN_GAME])
+    p_dict[p_id][c_id][FEATURES].append(m[TOTAL_DAMAGE_DEALT])
+    p_dict[p_id][c_id][FEATURES].append(m[TOTAL_DAMAGE_DEALT_TO_CHAMPIONS])
+    p_dict[p_id][c_id][FEATURES].append(m[TOTAL_DAMAGE_TAKEN])
+    p_dict[p_id][c_id][FEATURES].append(m[TOTAL_HEAL])
+    p_dict[p_id][c_id][FEATURES].append(m[TOTAL_TIME_CROWD_CONTROL_DEALT])
+    p_dict[p_id][c_id][FEATURES].append(m[TOTAL_UNITS_HEALED])
+    p_dict[p_id][c_id][FEATURES].append(m[TOWER_KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[TRIPLE_KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[TRUE_DAMAGE_DEALT])
+    p_dict[p_id][c_id][FEATURES].append(m[TRUE_DAMAGE_DEALT_TO_CHAMPIONS])
+    p_dict[p_id][c_id][FEATURES].append(m[TRUE_DAMAGE_TAKEN])
+    p_dict[p_id][c_id][FEATURES].append(m[UNREAL_KILLS])
+    p_dict[p_id][c_id][FEATURES].append(m[VISION_WARDS_BOUGHT_IN_GAME])
+    p_dict[p_id][c_id][FEATURES].append(m[WARDS_KILLED])
+    p_dict[p_id][c_id][FEATURES].append(m[WARDS_PLACED])
 
 def update_player(p_dict, p_id, m):
     '''
@@ -259,55 +265,56 @@ def update_player(p_dict, p_id, m):
     :return:
     '''
     m_id = m[MATCH_ID]
-    p_dict[p_id][MATCH_ID_LIST].append(m_id)
-    p_dict[p_id][MATCH_COUNT] += 1
-    p_dict[p_id][FEATURES][0] += m[ASSISTS]
-    p_dict[p_id][FEATURES][1] += m[CHAMP_LEVEL]
-    p_dict[p_id][FEATURES][2] += m[COMBAT_PLAYER_SCORE]
-    p_dict[p_id][FEATURES][3] += m[DEATHS]
-    p_dict[p_id][FEATURES][4] += m[DOUBLE_KILLS]
-    p_dict[p_id][FEATURES][5] += m[FIRST_BLOOD_ASSIST]
-    p_dict[p_id][FEATURES][6] += m[FIRST_BLOOD_KILL]
-    p_dict[p_id][FEATURES][7] += m[FIRST_INHIBITOR_ASSIST]
-    p_dict[p_id][FEATURES][8] += m[FIRST_INHIBITOR_KILL]
-    p_dict[p_id][FEATURES][9] += m[FIRST_TOWER_ASSIST]
-    p_dict[p_id][FEATURES][10] += m[FIRST_TOWER_KILL]
-    p_dict[p_id][FEATURES][11] += m[GOLD_EARNED]
-    p_dict[p_id][FEATURES][12] += m[GOLD_SPENT]
-    p_dict[p_id][FEATURES][13] += m[INHIBITOR_KILLS]
-    p_dict[p_id][FEATURES][14] += m[KILLING_SPREES]
-    p_dict[p_id][FEATURES][15] += m[KILLS]
-    p_dict[p_id][FEATURES][16] += m[LARGEST_CRITICAL_STRIKE]
-    p_dict[p_id][FEATURES][17] += m[LARGEST_KILLING_SPREE]
-    p_dict[p_id][FEATURES][18] += m[LARGEST_MULTI_KILL]
-    p_dict[p_id][FEATURES][19] += m[MAGIC_DAMAGE_DEALT]
-    p_dict[p_id][FEATURES][20] += m[MAGIC_DAMAGE_DEALT_TO_CHAMPIONS]
-    p_dict[p_id][FEATURES][21] += m[MAGIC_DAMAGE_TAKEN]
-    p_dict[p_id][FEATURES][22] += m[MINIONS_KILLED]
-    p_dict[p_id][FEATURES][23] += m[NEUTRAL_MINIONS_KILLED]
-    p_dict[p_id][FEATURES][24] += m[NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE]
-    p_dict[p_id][FEATURES][25] += m[NEUTRAL_MINIONS_KILLED_TEAM_JUNGLE]
-    p_dict[p_id][FEATURES][26] += m[PENTA_KILLS]
-    p_dict[p_id][FEATURES][27] += m[PHYSICAL_DAMAGE_DEALT]
-    p_dict[p_id][FEATURES][28] += m[PHYSICAL_DAMAGE_DEALT_TO_CHAMPIONS]
-    p_dict[p_id][FEATURES][29] += m[PHYSICAL_DAMAGE_TAKEN]
-    p_dict[p_id][FEATURES][30] += m[QUADRA_KILLS]
-    p_dict[p_id][FEATURES][31] += m[SIGHT_WARDS_BOUGHT_IN_GAME]
-    p_dict[p_id][FEATURES][32] += m[TOTAL_DAMAGE_DEALT]
-    p_dict[p_id][FEATURES][33] += m[TOTAL_DAMAGE_DEALT_TO_CHAMPIONS]
-    p_dict[p_id][FEATURES][34] += m[TOTAL_DAMAGE_TAKEN]
-    p_dict[p_id][FEATURES][35] += m[TOTAL_HEAL]
-    p_dict[p_id][FEATURES][36] += m[TOTAL_TIME_CROWD_CONTROL_DEALT]
-    p_dict[p_id][FEATURES][37] += m[TOTAL_UNITS_HEALED]
-    p_dict[p_id][FEATURES][38] += m[TOWER_KILLS]
-    p_dict[p_id][FEATURES][39] += m[TRIPLE_KILLS]
-    p_dict[p_id][FEATURES][40] += m[TRUE_DAMAGE_DEALT]
-    p_dict[p_id][FEATURES][41] += m[TRUE_DAMAGE_DEALT_TO_CHAMPIONS]
-    p_dict[p_id][FEATURES][42] += m[TRUE_DAMAGE_TAKEN]
-    p_dict[p_id][FEATURES][43] += m[UNREAL_KILLS]
-    p_dict[p_id][FEATURES][44] += m[VISION_WARDS_BOUGHT_IN_GAME]
-    p_dict[p_id][FEATURES][45] += m[WARDS_KILLED]
-    p_dict[p_id][FEATURES][46] += m[WARDS_PLACED]
+    c_id = m[CHAMPION_ID]
+    p_dict[p_id][c_id][MATCH_ID_LIST].append(m_id)
+    p_dict[p_id][c_id][MATCH_COUNT] += 1
+    p_dict[p_id][c_id][FEATURES][0] += m[ASSISTS]
+    p_dict[p_id][c_id][FEATURES][1] += m[CHAMP_LEVEL]
+    p_dict[p_id][c_id][FEATURES][2] += m[COMBAT_PLAYER_SCORE]
+    p_dict[p_id][c_id][FEATURES][3] += m[DEATHS]
+    p_dict[p_id][c_id][FEATURES][4] += m[DOUBLE_KILLS]
+    p_dict[p_id][c_id][FEATURES][5] += m[FIRST_BLOOD_ASSIST]
+    p_dict[p_id][c_id][FEATURES][6] += m[FIRST_BLOOD_KILL]
+    p_dict[p_id][c_id][FEATURES][7] += m[FIRST_INHIBITOR_ASSIST]
+    p_dict[p_id][c_id][FEATURES][8] += m[FIRST_INHIBITOR_KILL]
+    p_dict[p_id][c_id][FEATURES][9] += m[FIRST_TOWER_ASSIST]
+    p_dict[p_id][c_id][FEATURES][10] += m[FIRST_TOWER_KILL]
+    p_dict[p_id][c_id][FEATURES][11] += m[GOLD_EARNED]
+    p_dict[p_id][c_id][FEATURES][12] += m[GOLD_SPENT]
+    p_dict[p_id][c_id][FEATURES][13] += m[INHIBITOR_KILLS]
+    p_dict[p_id][c_id][FEATURES][14] += m[KILLING_SPREES]
+    p_dict[p_id][c_id][FEATURES][15] += m[KILLS]
+    p_dict[p_id][c_id][FEATURES][16] += m[LARGEST_CRITICAL_STRIKE]
+    p_dict[p_id][c_id][FEATURES][17] += m[LARGEST_KILLING_SPREE]
+    p_dict[p_id][c_id][FEATURES][18] += m[LARGEST_MULTI_KILL]
+    p_dict[p_id][c_id][FEATURES][19] += m[MAGIC_DAMAGE_DEALT]
+    p_dict[p_id][c_id][FEATURES][20] += m[MAGIC_DAMAGE_DEALT_TO_CHAMPIONS]
+    p_dict[p_id][c_id][FEATURES][21] += m[MAGIC_DAMAGE_TAKEN]
+    p_dict[p_id][c_id][FEATURES][22] += m[MINIONS_KILLED]
+    p_dict[p_id][c_id][FEATURES][23] += m[NEUTRAL_MINIONS_KILLED]
+    p_dict[p_id][c_id][FEATURES][24] += m[NEUTRAL_MINIONS_KILLED_ENEMY_JUNGLE]
+    p_dict[p_id][c_id][FEATURES][25] += m[NEUTRAL_MINIONS_KILLED_TEAM_JUNGLE]
+    p_dict[p_id][c_id][FEATURES][26] += m[PENTA_KILLS]
+    p_dict[p_id][c_id][FEATURES][27] += m[PHYSICAL_DAMAGE_DEALT]
+    p_dict[p_id][c_id][FEATURES][28] += m[PHYSICAL_DAMAGE_DEALT_TO_CHAMPIONS]
+    p_dict[p_id][c_id][FEATURES][29] += m[PHYSICAL_DAMAGE_TAKEN]
+    p_dict[p_id][c_id][FEATURES][30] += m[QUADRA_KILLS]
+    p_dict[p_id][c_id][FEATURES][31] += m[SIGHT_WARDS_BOUGHT_IN_GAME]
+    p_dict[p_id][c_id][FEATURES][32] += m[TOTAL_DAMAGE_DEALT]
+    p_dict[p_id][c_id][FEATURES][33] += m[TOTAL_DAMAGE_DEALT_TO_CHAMPIONS]
+    p_dict[p_id][c_id][FEATURES][34] += m[TOTAL_DAMAGE_TAKEN]
+    p_dict[p_id][c_id][FEATURES][35] += m[TOTAL_HEAL]
+    p_dict[p_id][c_id][FEATURES][36] += m[TOTAL_TIME_CROWD_CONTROL_DEALT]
+    p_dict[p_id][c_id][FEATURES][37] += m[TOTAL_UNITS_HEALED]
+    p_dict[p_id][c_id][FEATURES][38] += m[TOWER_KILLS]
+    p_dict[p_id][c_id][FEATURES][39] += m[TRIPLE_KILLS]
+    p_dict[p_id][c_id][FEATURES][40] += m[TRUE_DAMAGE_DEALT]
+    p_dict[p_id][c_id][FEATURES][41] += m[TRUE_DAMAGE_DEALT_TO_CHAMPIONS]
+    p_dict[p_id][c_id][FEATURES][42] += m[TRUE_DAMAGE_TAKEN]
+    p_dict[p_id][c_id][FEATURES][43] += m[UNREAL_KILLS]
+    p_dict[p_id][c_id][FEATURES][44] += m[VISION_WARDS_BOUGHT_IN_GAME]
+    p_dict[p_id][c_id][FEATURES][45] += m[WARDS_KILLED]
+    p_dict[p_id][c_id][FEATURES][46] += m[WARDS_PLACED]
 
 if __name__ == '__main__':
     retrieve_player_features()
