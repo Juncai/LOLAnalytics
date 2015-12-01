@@ -1,3 +1,6 @@
+# with champion info
+
+
 import Consts as c
 import numpy as np
 from sklearn.cluster import KMeans, AgglomerativeClustering
@@ -14,8 +17,9 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 # player_dict_path = 'data/player_dict.pickle'
-player_dict_path = 'data/player_dict_3.pickle'  # 10770 players with 300 matches each
-perfect_match_path = 'data/perfect_matches.pickle'
+player_dict_path = 'data/player_dict_with_champ.pickle'  # 10770 players with 300 matches each
+perfect_match_path = 'data/perfect_matches_with_champ_info.pickle'
+champ_tags_path = 'data/champ_tags.pickle'
 
 def main():
 
@@ -27,7 +31,7 @@ def main():
     n_center = 6
     cluster_method = 'hierarchical'
 
-    # load match data
+    # load data
     print('{} Loading match data...'.format(time.time() - st))
     match_dict = util.load_pickle_file(perfect_match_path)
 
@@ -35,11 +39,16 @@ def main():
     print('Loading player dict...')
     player_dict = util.load_pickle(player_dict_path)
 
+    print('Loading champion tags...')
+    champ_tags = util.load_pickle(champ_tags_path)
+
     # get data from the dict
     print('Getting features from the dict...')
-
     player_features_id = np.array([np.append(player_dict[pid][c.FEATURES], pid) for pid in player_dict])  # last column is pid
     player_features = player_features_id[:, 0 : -1]
+
+
+
 
     n = len(player_features)
 

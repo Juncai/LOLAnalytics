@@ -1,4 +1,5 @@
 SUMMONER_ID = 'summoner_id'
+CHAMPION_ID = 'championId'
 ASSISTS = 'assists'
 CHAMP_LEVEL = 'champLevel'
 COMBAT_PLAYER_SCORE = 'combatPlayerScore'
@@ -54,5 +55,6 @@ MATCH_COUNT = 'match_num'
 FEATURES = 'features'
 
 TEAM_INFO_PLAYERS = 'players'
+TEAM_INFO_CHAMPIONS = 'champions'
 TEAM_INFO_GOLD_EARNED = 'goldEarned'
 TEAM_INFO_GOLD_SPENT = 'goldSpent'

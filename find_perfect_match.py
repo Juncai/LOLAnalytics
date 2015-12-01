@@ -10,6 +10,7 @@ player_dict_path = 'data/player_dict.pickle'
 mid_path_test = 'data/perfect_match_ids_test.pickle'
 mid_path = 'data/perfect_match_ids.pickle'
 
+perfect_match_path = 'data/perfect_matches_with_champ_info.pickle'
 perfect_match_path_test = 'data/perfect_matches_test.pickle'
 match_limit = 5000
 match_per_player = 300
@@ -102,10 +103,12 @@ def get_perfect_match_data(id_path, save_path):
         for m in match_col.find({c.MATCH_ID : mid}):
             if m[c.WINNER]:
                 win_team[c.TEAM_INFO_PLAYERS].append(m[c.SUMMONER_ID])
+                win_team[c.TEAM_INFO_CHAMPIONS].append(m[c.CHAMPION_ID])
                 win_team[c.TEAM_INFO_GOLD_EARNED] += m[c.GOLD_EARNED]
                 win_team[c.TEAM_INFO_GOLD_SPENT] += m[c.GOLD_SPENT]
             else:
                 lose_team[c.TEAM_INFO_PLAYERS].append(m[c.SUMMONER_ID])
+                lose_team[c.TEAM_INFO_CHAMPIONS].append(m[c.CHAMPION_ID])
                 lose_team[c.TEAM_INFO_GOLD_EARNED] += m[c.GOLD_EARNED]
                 lose_team[c.TEAM_INFO_GOLD_SPENT] += m[c.GOLD_SPENT]
     util.save(perfect_matches, save_path)
@@ -120,9 +123,10 @@ def load_player_data(perfect_match_path):
 
 
 def init_team(t):
-    t['players'] = []
-    t['goldEarned'] = 0
-    t['goldSpent'] = 0
+    t[c.TEAM_INFO_PLAYERS] = []
+    t[c.TEAM_INFO_CHAMPIONS] = []
+    t[c.TEAM_INFO_GOLD_EARNED] = 0
+    t[c.TEAM_INFO_GOLD_SPENT] = 0
 
 
 if __name__ == '__main__':

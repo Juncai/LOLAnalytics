@@ -7,7 +7,7 @@ player_dict_path = 'data/player_dict.pickle'
 
 def main():
     center_num = 5
-    _, centers = pc.k_means(center_num)
+    _, centers = pc.cluster(center_num)
     player_dict = io.load_pickle(player_dict_path)
     feature_dict = get_dist_as_features(player_dict, centers)
 
