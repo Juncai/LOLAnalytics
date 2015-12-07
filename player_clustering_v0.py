@@ -46,7 +46,7 @@ def main():
 
     # 2D embedding of the digits dataset
     print("Computing embedding")
-    player_features = manifold.SpectralEmbedding(n_components=2).fit_transform(player_features)
+    player_features = manifold.SpectralEmbedding(n_components=3).fit_transform(player_features)
     print("Done.")
 
 

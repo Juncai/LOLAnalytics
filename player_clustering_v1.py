@@ -28,8 +28,6 @@ def main():
     # for c in centers:
     #     k_means(c)
     st = time.time()
-    n_center = 6
-    cluster_method = 'hierarchical'
 
     # load data
     print('{} Loading match data...'.format(time.time() - st))
@@ -41,96 +39,103 @@ def main():
 
     print('Loading champion tags...')
     champ_tags = util.load_pickle(champ_tags_path)
+    champ_tags_list = list(champ_tags[0])
+    champ_tags_dict = champ_tags[1]
+
+
 
     # get data from the dict
     print('Getting features from the dict...')
-    player_features_id = np.array([np.append(player_dict[pid][c.FEATURES], pid) for pid in player_dict])  # last column is pid
-    player_features = player_features_id[:, 0 : -1]
+    # each player feature will have six elements (one for each champ tag)
+    # ORDER: Tank, Marksman, Support, Fighter, Mage, Assassin
+    player_feature_dict_pre = {}
+    for pid in player_dict:
+        player_feature_dict_pre[pid] = []
+        match_count = np.zeros((1, 6))[0]
+        for i in range(6):
+            player_feature_dict_pre[pid].append(np.zeros((1, 47))[0])
+        for cid in player_dict[pid]:
+            for t in champ_tags_dict[cid]:
+                player_feature_dict_pre[pid][champ_tags_list.index(t)] += player_dict[pid][cid]['features']
+                match_count[champ_tags_list.index(t)] += player_dict[pid][cid]['match_num']
+        for i, f in player_feature_dict_pre[pid]:
+            f /= match_count[i]
+
+    # player_feature_dict = {}
+    # for pid in player_feature_dict_pre:
+    #     player_feature_dict[pid] = np.array([])
+    #     for f in player_feature_dict_pre[pid]:
+    #         player_feature_dict[pid] = np.append(player_feature_dict[pid], f)
+
+
+    # player_features_id = np.array([np.append(player_dict[pid][c.FEATURES], pid) for pid in player_dict])  # last column is pid
+    # player_features = player_features_id[:, 0 : -1]
 
 
 
 
-    n = len(player_features)
+    # n = len(player_features)
+    #
+    #
+    # # 2D embedding of the digits dataset
+    # print("Computing embedding")
+    # player_features = manifold.SpectralEmbedding(n_components=2).fit_transform(player_features)
+    # print("Done.")
+
+    # construct new features as a team play style (currently a simple aggregation of all the players' play style)
+    print('{} Constructing new dataset...'.format(time.time() - st))
+    n_feature = 47 * 6
+    features = []
+    label = []
+    flip = False    # flag for flip win/lose every match
+    for mid in match_dict:
+        m = match_dict[mid]
+        win_f = np.zeros((1, n_feature))[0]
+        lose_f = np.zeros((1, n_feature))[0]
+        for ind, pid in enumerate(m[0][c.TEAM_INFO_PLAYERS]):
+            win_f += player_feature_dict[pid]
+        for pid in m[1][c.TEAM_INFO_PLAYERS]:
+            lose_f += player_feature_dict[pid]
+        win_f /= 5
+        lose_f /= 5
+        if flip:
+            features.append(np.append(lose_f, win_f))
+            label.append(-1)
+        else:
+            features.append(np.append(win_f, lose_f))
+            label.append(1)
+        flip = not flip  # flip the flag
+
+    features = np.array(features)
+    label = np.array(label)
+
+    # prepare training and testing set
+    print('{} Start training...'.format(time.time() - st))
+    k = 9
+    k_folds = Preprocess.prepare_k_folds([features, label], k)
+
+    for i in range(k):
+        tr_data, te_data = Preprocess.get_i_fold(k_folds, i)
+        tr_n, f_d = np.shape(tr_data[0])
+        te_n, = np.shape(te_data[1])
+
+        # train with some algorithm
+
+        # clf1 = LogisticRegression(random_state=123)
+
+        clf1 = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
+                 algorithm="SAMME",
+                 n_estimators=200)
+
+        clf1.fit(tr_data[0], tr_data[1])
+        tr_pred1 = clf1.predict(tr_data[0])
+        te_pred1 = clf1.predict(te_data[0])
+        tr_acc = (tr_pred1 == tr_data[1]).sum() / tr_n
+        te_acc = (te_pred1 == te_data[1]).sum() / te_n
+        print('Training acc: {}, Testing acc: {}'.format(tr_acc, te_acc))
 
 
-    # 2D embedding of the digits dataset
-    print("Computing embedding")
-    player_features = manifold.SpectralEmbedding(n_components=2).fit_transform(player_features)
-    print("Done.")
 
-
-    for cluster_method in ('kmeans', 'hierarchical'):
-        for n_center in range(2, 10):
-            print('Clustering: {}, number of clusters: {}: '.format(cluster_method, n_center))
-            # clustering and get the distance to center as the new features
-            print('{} Clustering...'.format(time.time() - st))
-            new_features = cluster(cluster_method, n_center, player_features)
-
-            player_feature_dict = {}
-            for i in range(n):
-                player_f = new_features[i]
-                player_feature_dict[player_features_id[i][-1]] = player_f
-
-
-            # construct new features as a team play style (currently a simple aggregation of all the players' play style)
-            print('{} Constructing new dataset...'.format(time.time() - st))
-
-            features = []
-            label = []
-            flip = False    # flag for flip win/lose every match
-            for mid in match_dict:
-                m = match_dict[mid]
-                win_f = np.zeros((1, n_center))[0]
-                lose_f = np.zeros((1, n_center))[0]
-                for pid in m[0][c.TEAM_INFO_PLAYERS]:
-                    win_f += player_feature_dict[pid]
-                for pid in m[1][c.TEAM_INFO_PLAYERS]:
-                    lose_f += player_feature_dict[pid]
-                win_f /= 5
-                lose_f /= 5
-                if flip:
-                    features.append(np.append(lose_f, win_f))
-                    label.append(-1)
-                else:
-                    features.append(np.append(win_f, lose_f))
-                    label.append(1)
-                flip = not flip  # flip the flag
-
-            features = np.array(features)
-            label = np.array(label)
-
-            # normalize features
-            # row_ranges = features.max(axis=1) - features.min(axis = 1)
-            # row_means = features.mean(axis=1)
-            # features = features / row_means[:, np.newaxis]
-            # features = normalize(features)
-
-
-
-            # prepare training and testing set
-            print('{} Start training...'.format(time.time() - st))
-            k = 9
-            k_folds = Preprocess.prepare_k_folds([features, label], k)
-
-            for i in range(k):
-                tr_data, te_data = Preprocess.get_i_fold(k_folds, i)
-                tr_n, f_d = np.shape(tr_data[0])
-                te_n, = np.shape(te_data[1])
-
-                # train with some algorithm
-
-                # clf1 = LogisticRegression(random_state=123)
-
-                clf1 = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
-                         algorithm="SAMME",
-                         n_estimators=200)
-
-                clf1.fit(tr_data[0], tr_data[1])
-                tr_pred1 = clf1.predict(tr_data[0])
-                te_pred1 = clf1.predict(te_data[0])
-                tr_acc = (tr_pred1 == tr_data[1]).sum() / tr_n
-                te_acc = (te_pred1 == te_data[1]).sum() / te_n
-                print('Training acc: {}, Testing acc: {}'.format(tr_acc, te_acc))
 
 
 
