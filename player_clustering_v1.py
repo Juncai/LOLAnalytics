@@ -14,7 +14,9 @@ from sklearn.preprocessing import normalize
 from sklearn import manifold
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
-
+from sklearn import svm
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import BernoulliRBM
 
 # player_dict_path = 'data/player_dict.pickle'
 player_dict_path = 'data/player_dict_with_champ.pickle'  # 10770 players with 300 matches each
@@ -42,31 +44,25 @@ def main():
     champ_tags_list = list(champ_tags[0])
     champ_tags_dict = champ_tags[1]
 
-
-
     # get data from the dict
     print('Getting features from the dict...')
     # each player feature will have six elements (one for each champ tag)
     # ORDER: Tank, Marksman, Support, Fighter, Mage, Assassin
+    n_p_feature = 44
     player_feature_dict_pre = {}
+    col_to_del = [1, 34, 35]
     for pid in player_dict:
-        player_feature_dict_pre[pid] = []
-        match_count = np.zeros((1, 6))[0]
+        player_feature_dict_pre[pid] = {c.MATCH_COUNT : np.zeros((6,)), c.FEATURES : []}
         for i in range(6):
-            player_feature_dict_pre[pid].append(np.zeros((1, 47))[0])
+            player_feature_dict_pre[pid][c.FEATURES].append(np.zeros((n_p_feature,)))
         for cid in player_dict[pid]:
             for t in champ_tags_dict[cid]:
-                player_feature_dict_pre[pid][champ_tags_list.index(t)] += player_dict[pid][cid]['features']
-                match_count[champ_tags_list.index(t)] += player_dict[pid][cid]['match_num']
-        for i, f in player_feature_dict_pre[pid]:
-            f /= match_count[i]
-
-    # player_feature_dict = {}
-    # for pid in player_feature_dict_pre:
-    #     player_feature_dict[pid] = np.array([])
-    #     for f in player_feature_dict_pre[pid]:
-    #         player_feature_dict[pid] = np.append(player_feature_dict[pid], f)
-
+                cur_f = np.delete(player_dict[pid][cid][c.FEATURES], col_to_del)
+                player_feature_dict_pre[pid][c.FEATURES][champ_tags_list.index(t)] += cur_f
+                player_feature_dict_pre[pid][c.MATCH_COUNT][champ_tags_list.index(t)] += player_dict[pid][cid][c.MATCH_COUNT]
+        for i, f in enumerate(player_feature_dict_pre[pid][c.FEATURES]):
+            cur_m_count = player_feature_dict_pre[pid][c.MATCH_COUNT][i]
+            f /= (cur_m_count if cur_m_count > 0 else 1)
 
     # player_features_id = np.array([np.append(player_dict[pid][c.FEATURES], pid) for pid in player_dict])  # last column is pid
     # player_features = player_features_id[:, 0 : -1]
@@ -84,30 +80,54 @@ def main():
 
     # construct new features as a team play style (currently a simple aggregation of all the players' play style)
     print('{} Constructing new dataset...'.format(time.time() - st))
-    n_feature = 47 * 6
+    n_feature = n_p_feature * len(champ_tags_list)
     features = []
     label = []
     flip = False    # flag for flip win/lose every match
-    for mid in match_dict:
-        m = match_dict[mid]
-        win_f = np.zeros((1, n_feature))[0]
-        lose_f = np.zeros((1, n_feature))[0]
-        for ind, pid in enumerate(m[0][c.TEAM_INFO_PLAYERS]):
-            win_f += player_feature_dict[pid]
-        for pid in m[1][c.TEAM_INFO_PLAYERS]:
-            lose_f += player_feature_dict[pid]
-        win_f /= 5
-        lose_f /= 5
-        if flip:
-            features.append(np.append(lose_f, win_f))
+    for mid, m in match_dict.items():
+        win_f = np.zeros((n_feature,))
+        loss_f = np.zeros((n_feature,))
+        team_f = [win_f, loss_f]
+        for t_ind, team in enumerate(m):
+            ct_count = np.zeros((6,))  # counts for each champion tag
+            for ind, pid in enumerate(team[c.TEAM_INFO_PLAYERS]):
+                champ_id = team[c.TEAM_INFO_CHAMPIONS][ind]
+                champ_tags = champ_tags_dict[champ_id]
+                for ct in champ_tags:
+                    ct_ind = champ_tags_list.index(ct)
+                    ct_count[ct_ind] += 1
+                    start_col = 0 + ct_ind * n_p_feature
+                    end_col = (ct_ind + 1) * n_p_feature
+                    cur_pf = player_feature_dict_pre[pid][c.FEATURES][ct_ind]
+                    # print("ct: {}, ct_ind: {}, start_col: {}, end_col: {}".format(ct, ct_ind, start_col, end_col))
+                    # print(team_f[t_ind][start_col:end_col])
+                    # print(cur_pf)
+                    team_f[t_ind][start_col:end_col] += cur_pf
+            for ctc_ind, ctc in enumerate(ct_count):
+                start_col = 0 + ctc_ind * n_p_feature
+                end_col = (ctc_ind + 1) * n_p_feature
+                if ctc > 1:
+                    team_f[t_ind][start_col:end_col] /= ctc
+                elif ctc == 0:
+                    for pid in team[c.TEAM_INFO_PLAYERS]:
+                        team_f[t_ind][start_col:end_col] +=  player_feature_dict_pre[pid][c.FEATURES][ctc_ind]
+                    team_f[t_ind][start_col:end_col] /= 5
+
+        # TODO calculate feature mean
+        if np.random.random_sample() >= 0.5:
+            # features.append(np.append(loss_f, win_f))
+            features.append(loss_f - win_f)
             label.append(-1)
         else:
-            features.append(np.append(win_f, lose_f))
+            # features.append(np.append(win_f, loss_f))
+            features.append(win_f - loss_f)
             label.append(1)
         flip = not flip  # flip the flag
 
     features = np.array(features)
     label = np.array(label)
+
+    # features = normalize(features)
 
     # prepare training and testing set
     print('{} Start training...'.format(time.time() - st))
@@ -121,11 +141,16 @@ def main():
 
         # train with some algorithm
 
-        # clf1 = LogisticRegression(random_state=123)
+        clf1 = LogisticRegression(random_state=123)
+        cc = 0.01
+        kernel = 'linear'
+        tol = 0.01
+        # clf1 = svm.SVC(C=cc, kernel=kernel, tol=tol)
+        # clf1 = KNeighborsClassifier(n_neighbors=5)
 
-        clf1 = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
-                 algorithm="SAMME",
-                 n_estimators=200)
+        # clf1 = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
+        #          algorithm="SAMME",
+        #          n_estimators=200)
 
         clf1.fit(tr_data[0], tr_data[1])
         tr_pred1 = clf1.predict(tr_data[0])
