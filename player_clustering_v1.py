@@ -17,6 +17,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import BernoulliRBM
+# from PyBrain.tools.shortcuts import buildNetwork
 
 # player_dict_path = 'data/player_dict.pickle'
 player_dict_path = 'data/player_dict_with_champ.pickle'  # 10770 players with 300 matches each
@@ -113,14 +114,13 @@ def main():
                         team_f[t_ind][start_col:end_col] +=  player_feature_dict_pre[pid][c.FEATURES][ctc_ind]
                     team_f[t_ind][start_col:end_col] /= 5
 
-        # TODO calculate feature mean
         if np.random.random_sample() >= 0.5:
-            # features.append(np.append(loss_f, win_f))
-            features.append(loss_f - win_f)
+            features.append(np.append(loss_f, win_f))
+            # features.append(loss_f - win_f)
             label.append(-1)
         else:
-            # features.append(np.append(win_f, loss_f))
-            features.append(win_f - loss_f)
+            features.append(np.append(win_f, loss_f))
+            # features.append(win_f - loss_f)
             label.append(1)
         flip = not flip  # flip the flag
 
@@ -141,20 +141,32 @@ def main():
 
         # train with some algorithm
 
-        clf1 = LogisticRegression(random_state=123)
+        # clf1 = LogisticRegression(random_state=123)  # 0.57
         cc = 0.01
-        kernel = 'linear'
+        kernel = 'rbf'
         tol = 0.01
-        # clf1 = svm.SVC(C=cc, kernel=kernel, tol=tol)
-        # clf1 = KNeighborsClassifier(n_neighbors=5)
+        # clf1 = svm.SVC(C=cc, kernel=kernel, tol=tol)  # rbf: 0.5,
+        # clf1 = KNeighborsClassifier(n_neighbors=4)  # 3: 0.55, 4: 0.53
 
-        # clf1 = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
-        #          algorithm="SAMME",
-        #          n_estimators=200)
+        clf1 = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
+                 algorithm="SAMME",
+                 n_estimators=200)
 
         clf1.fit(tr_data[0], tr_data[1])
         tr_pred1 = clf1.predict(tr_data[0])
         te_pred1 = clf1.predict(te_data[0])
+
+
+
+
+        # NN
+        # net = buildNetwork(, 3, 1)
+
+
+
+
+
+
         tr_acc = (tr_pred1 == tr_data[1]).sum() / tr_n
         te_acc = (te_pred1 == te_data[1]).sum() / te_n
         print('Training acc: {}, Testing acc: {}'.format(tr_acc, te_acc))
